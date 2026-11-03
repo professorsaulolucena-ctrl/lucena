@@ -22,7 +22,7 @@ const area = (id, label, value, placeholder='') => `<label for="${id}">${label}<
 
 function frame(content) {
   $('app').innerHTML = `<div class="app">
-    <header class="hero"><div class="brand"><div><div class="logo">ADAPTA<span>+</span></div><div class="tagline">Assistente pedagógico inclusivo</div></div><div class="brand-icon">✦</div></div>
+    <header class="hero"><div class="brand"><div><div class="logo">ADAPTA<span>+</span></div><div class="tagline">Assistente pedagógico inclusivo</div></div><div class="brand-icon">A+</div></div>
     <h1>Atividades que respeitam cada jeito de aprender.</h1><p>Planeje adaptações com foco nas habilidades, nos interesses e nas necessidades de cada estudante.</p></header>
     ${content}
     <nav class="bottom-nav"><button data-nav="home">⌂<small>Início</small></button><button data-nav="form">✎<small>Criar</small></button><button data-nav="history">▤<small>Histórico</small></button></nav>
@@ -51,7 +51,7 @@ function showForm(){
     <label>Tipo de material</label>${select('kind',['Atividade','Avaliação','Prova'],state.kind)}
     <label>Disciplina</label>${select('subject',subjects,state.subject)}
     ${area('topic','Conteúdo / tema trabalhado',state.topic,'Ex.: Figuras de linguagem: metáfora e comparação')}
-    <div class="row"><div><label>Quantidade de questões</label>${select('quantity',['3','5','8','10','12','15','20'],state.quantity)}</div><div><label>Formato</label>${select('format',['Texto e imagens','Somente texto','Predominantemente visual'],state.format)}</div></div>
+    <div class="row"><div><label>Quantidade de questões</label>${select('quantity',['3','5','8','10','12','15'],state.quantity)}</div><div><label>Formato</label>${select('format',['Texto e imagens','Somente texto','Predominantemente visual'],state.format)}</div></div>
     <label>Nível de complexidade</label>${select('complexity',['A IA define','Muito simples','Simples','Intermediário'],state.complexity)}\n    ${input('api-base','Servidor seguro de IA',state.apiBase,'https://seu-projeto.vercel.app')}
   </section>
   <div class="section-title">2. Perfil pedagógico do estudante</div>
@@ -81,7 +81,7 @@ async function generateActivity() {
   if (!base) { alert('Para gerar uma atividade profissional com IA, primeiro publique o servidor e informe sua URL.'); return; }
   const button = $('generate'); button.disabled = true; button.textContent = 'Elaborando atividade...';
   try {
-    const response = await fetch(base + '/api/generate-activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...state, quantity: Number(state.quantity) }) });
+    const response = await fetch(base + '/api/generate-activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject:state.subject, topic:state.topic, quantity:Number(state.quantity), format:state.format, complexity:state.complexity, grade:state.grade, age:state.age, development:state.development, condition:state.condition, support:state.support, reading:state.reading, writing:state.writing, math:state.math, communication:state.communication, interests:state.interests, strengths:state.strengths, barriers:state.barriers, notes:state.notes }) });
     const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Não foi possível gerar a atividade.');
     const activity = data.activity; state.title = activity.title; state.objective = activity.objective; state.instructions = activity.instructions; state.generatedByAI = true; state.images = {};
     state.questions = activity.questions.map((q, i) => ({ number: i + 1, text: q.prompt, opts: q.options, answer: q.correctAnswer, teacherSupport: q.teacherSupport, imageDescription: q.imageDescription, responseType: q.responseType }));
