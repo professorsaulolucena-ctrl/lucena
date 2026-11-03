@@ -20,7 +20,7 @@ O aplicativo usa a OpenAI API por meio de funções serverless da Vercel. A chav
 4. No ADAPTA+, informe a URL pública do projeto Vercel no campo **Servidor seguro de IA**.
 5. Gere a atividade. Depois, na tela de revisão, use **Gerar ilustrações pedagógicas com IA**.
 
-A geração de texto usa GPT-5.5 e a geração de imagens usa GPT Image 2.5 Sunburst. A conta OpenAI API precisa ter acesso e faturamento habilitados; o uso pode gerar custos. A disponibilidade do modelo pode depender da verificação da organização.
+A geração de texto usa GPT-5.5 e a geração de imagens usa GPT Image 2.5 Flare. A conta OpenAI API precisa ter acesso e faturamento habilitados; o uso pode gerar custos. A disponibilidade do modelo pode depender da verificação da organização.
 
 As funções incluem um limite básico de solicitações por endereço IP em memória. Em implantação pública, recomenda-se acrescentar um serviço persistente de rate limit, autenticação de usuário e monitoramento de custos.
 
