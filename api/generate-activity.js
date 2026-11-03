@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!key) return res.status(503).json({ error: "O serviço de IA ainda não foi configurado no servidor." });
   try {
     const p = req.body || {};
-    const required = ["subject", "topic", "quantity", "format", "complexity", "grade", "condition", "reading", "writing", "math", "communication"];
+    const required = ["subject", "topic", "quantity", "format", "complexity", "condition", "reading", "writing", "math", "communication"];
     if (!required.every(k => p[k] !== undefined && String(p[k]).trim() !== "")) {
       return res.status(400).json({ error: "Preencha disciplina, conteúdo e perfil pedagógico." });
     }
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       type: "object", additionalProperties: false, required: ["title", "objective", "instructions", "questions"],
       properties: {
         title: { type: "string" }, objective: { type: "string" }, instructions: { type: "string" },
-        questions: { type: "array", minItems: count, maxItems: count, items: {
+        questions: { type: "array", items: {
           type: "object", additionalProperties: false,
           required: ["prompt", "responseType", "options", "correctAnswer", "teacherSupport", "imageDescription"],
           properties: {
