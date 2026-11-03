@@ -12,7 +12,7 @@ const state = {
   student: '', grade: '', age: '', development: '', condition: 'TEA', support: 'Nível 1',
   reading: 'Reconhece letras', writing: 'Escreve com apoio',
   math: 'Reconhece números até 10', communication: 'Comunica-se verbalmente',
-  interests: '', strengths: '', barriers: '', notes: '', questions: [], images: {}, apiBase: localStorage.getItem('adapta-api-base') || '', generatedByAI: false, title: '', objective: ''
+  interests: '', strengths: '', barriers: '', notes: '', questions: [], images: {}, apiBase: localStorage.getItem('adapta-api-base') || '', generatedByAI: false, title: '', objective: '', instructions: ''
 };
 const subjects = ['Língua Portuguesa','Matemática','Ciências','História','Geografia','Inglês','Arte','Educação Física','Ensino Religioso','Outra'];
 const esc = (v='') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -83,7 +83,7 @@ async function generateActivity() {
   try {
     const response = await fetch(base + '/api/generate-activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...state, quantity: Number(state.quantity) }) });
     const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Não foi possível gerar a atividade.');
-    const activity = data.activity; state.title = activity.title; state.objective = activity.objective; state.generatedByAI = true; state.images = {};
+    const activity = data.activity; state.title = activity.title; state.objective = activity.objective; state.instructions = activity.instructions; state.generatedByAI = true; state.images = {};
     state.questions = activity.questions.map((q, i) => ({ number: i + 1, text: q.prompt, opts: q.options, answer: q.correctAnswer, teacherSupport: q.teacherSupport, imageDescription: q.imageDescription, responseType: q.responseType }));
     saveHistory(); showResult();
   } catch (error) { button.disabled = false; button.textContent = 'Preparar atividade adaptada'; alert(error.message || 'Falha na conexão com a IA.'); }
@@ -101,7 +101,7 @@ function buildDraftQuestions(){
 }
 function saveHistory(){
   const history=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
-  history.unshift({topic:state.topic,subject:state.subject,kind:state.kind,title:state.title,objective:state.objective,generatedByAI:state.generatedByAI,questions:state.questions,date:new Date().toLocaleDateString('pt-BR')});
+  history.unshift({topic:state.topic,subject:state.subject,kind:state.kind,title:state.title,objective:state.objective,instructions:state.instructions,generatedByAI:state.generatedByAI,questions:state.questions,date:new Date().toLocaleDateString('pt-BR')});
   localStorage.setItem('adapta-plus-history',JSON.stringify(history.slice(0,40)));
 }
 function showResult(){
@@ -160,18 +160,18 @@ async function exportPDF(){
   pdf.setFont('helvetica','normal');pdf.setFontSize(11);
   for(const line of [`Conteúdo: ${state.topic}`,`Disciplina: ${state.subject}`,`Estudante: ${state.student||'________________________'}`,`Turma: ${state.grade||'________________'}`]){const lines=pdf.splitTextToSize(line,180);pdf.text(lines,14,y);y+=lines.length*6+2;}
   y+=4;
-  state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});if(state.images[q.number]){if(y+65>280){pdf.addPage();y=18;}pdf.addImage(state.images[q.number],'PNG',20,y,62,62);y+=67;}y+=4;});
+  state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});if(q.teacherSupport){const support=pdf.splitTextToSize('Apoio ao profissional: '+q.teacherSupport,175);if(y+support.length*5>280){pdf.addPage();y=18;}pdf.setFontSize(9);pdf.text(support,20,y);y+=support.length*5+2;pdf.setFontSize(11);}if(state.images[q.number]){if(y+65>280){pdf.addPage();y=18;}pdf.addImage(state.images[q.number],'PNG',20,y,62,62);y+=67;}y+=4;});
   await saveBlob(pdf.output('blob'),'ADAPTA-atividade-adaptada.pdf');
 }
 async function exportWord(){
-  const children=[new Paragraph({text:'ADAPTA+ | '+state.kind,heading:HeadingLevel.TITLE}),new Paragraph({children:[new TextRun({text:'Conteúdo: ',bold:true}),new TextRun(state.topic)]}),new Paragraph('Disciplina: '+state.subject),new Paragraph('Estudante: '+(state.student||'________________________')),new Paragraph('Turma: '+(state.grade||'________________'))];
-  state.questions.forEach(q=>{children.push(new Paragraph({text:q.number+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,i)=>children.push(new Paragraph(String.fromCharCode(65+i)+') '+o)));if(state.images[q.number]){const raw=atob(state.images[q.number].split(',')[1]);const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));children.push(new Paragraph({children:[new ImageRun({data:bytes,transformation:{width:320,height:320}})]}));}});
+  const children=[new Paragraph({text:'ADAPTA+ | '+state.kind,heading:HeadingLevel.TITLE}),new Paragraph({children:[new TextRun({text:'Objetivo: ',bold:true}),new TextRun(state.objective||'')]}),new Paragraph({children:[new TextRun({text:'Orientação: ',bold:true}),new TextRun(state.instructions||'')]}),new Paragraph({children:[new TextRun({text:'Conteúdo: ',bold:true}),new TextRun(state.topic)]}),new Paragraph('Disciplina: '+state.subject),new Paragraph('Estudante: '+(state.student||'________________________')),new Paragraph('Turma: '+(state.grade||'________________'))];
+  state.questions.forEach(q=>{children.push(new Paragraph({text:q.number+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,i)=>children.push(new Paragraph(String.fromCharCode(65+i)+') '+o)));if(q.teacherSupport)children.push(new Paragraph({children:[new TextRun({text:'Apoio ao profissional: ',bold:true}),new TextRun(q.teacherSupport)]}));if(q.answer)children.push(new Paragraph({children:[new TextRun({text:'Gabarito: ',bold:true}),new TextRun(q.answer)]}));if(state.images[q.number]){const raw=atob(state.images[q.number].split(',')[1]);const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));children.push(new Paragraph({children:[new ImageRun({data:bytes,transformation:{width:320,height:320}})]}));}});
   children.push(new Paragraph({children:[new TextRun({text:'Material demonstrativo: revise e ajuste conforme a avaliação pedagógica do estudante.',italics:true})]}));
   const blob=await Packer.toBlob(new Document({sections:[{children}]}));await saveBlob(blob,'ADAPTA-atividade-adaptada.docx');
 }
 function showHistory(){
   state.screen='history';const h=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
   frame(`<div class="section-title">Histórico de atividades</div>${h.length?h.map((x,i)=>`<section class="panel"><b>${esc(x.topic)}</b><p class="muted">${esc(x.subject)} • ${esc(x.kind)} • ${x.questions.length} questões • ${esc(x.date)}</p><button class="secondary" data-open="${i}">Abrir</button></section>`).join(''):'<section class="panel muted">Nenhuma atividade salva neste dispositivo ainda.</section>'}`);
-  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const x=h[Number(b.dataset.open)];state.topic=x.topic;state.subject=x.subject;state.kind=x.kind;state.title=x.title||x.topic;state.objective=x.objective||'';state.generatedByAI=!!x.generatedByAI;state.questions=x.questions;state.images={};showResult();});
+  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const x=h[Number(b.dataset.open)];state.topic=x.topic;state.subject=x.subject;state.kind=x.kind;state.title=x.title||x.topic;state.objective=x.objective||'';state.instructions=x.instructions||'';state.generatedByAI=!!x.generatedByAI;state.questions=x.questions;state.images={};showResult();});
 }
 showHome();
