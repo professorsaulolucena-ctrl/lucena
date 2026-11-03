@@ -97,11 +97,11 @@ function showResult(){
   frame(`<div class="section-title">Sua atividade está pronta para revisão</div><section class="panel">
   <div class="result-head"><span class="badge">RASCUNHO DEMONSTRATIVO</span><h2>${esc(state.topic)}</h2><p class="muted">${esc(state.subject)} • ${esc(state.kind)} • ${state.questions.length} questões</p></div>
   <p class="muted">Estudante: ${esc(state.student||'Não informado')} • ${esc(state.grade)}</p>
-  ${state.questions.map(q=>`<div class="question"><b>${q.number}. ${esc(q.text)}</b>${state.format!=='Somente texto'&&q.number%2===1?'<div class="visual-cue">🧩　🔎　⭐</div>':''}<div class="options">${q.opts.map((o,i)=>`<div class="option">${String.fromCharCode(65+i)}) ${esc(o)}</div>`).join('')}</div></div>`).join('')}
-  <div class="note">A geração apresentada nesta versão é demonstrativa e ainda não utiliza IA externa. Revise os exemplos e substitua-os por questões diretamente vinculadas ao objetivo curricular antes de aplicar.</div>
+  ${state.questions.map(q=>`<div class="question"><b>${q.number}. ${esc(q.text)}</b><div class="image-slot" id="image-slot-${q.number}">${state.images[q.number] ? `<img class="worksheet-image" src="${state.images[q.number]}" alt="Ilustração pedagógica">` : ""}</div><div class="options">${q.opts.map((o,i)=>`<div class="option">${String.fromCharCode(65+i)}) ${esc(o)}</div>`).join('')}</div></div>`).join('')}
+  <div class="ai-tools"><label for="api-base">Endereço do servidor de IA</label><input class="field" id="api-base" placeholder="https://seu-projeto.vercel.app" value="${esc(localStorage.getItem('adapta-api-base')||import.meta.env.VITE_API_BASE_URL||'')}"><p class="muted">A chave de IA fica protegida no servidor, nunca dentro do APK.</p><button class="secondary full" id="generate-images">Gerar ilustrações pedagógicas com IA</button><p class="muted" id="image-status">As imagens serão criadas para as questões, sem emojis, letras ou marcas d’água.</p></div><div class="note">As questões ainda são demonstrativas. Revise a relação entre cada questão, o objetivo curricular e a imagem antes de aplicar.</div>
   <div class="row"><button class="secondary" id="export-word">Baixar Word</button><button class="primary" id="export-pdf">Baixar PDF</button></div>
   <button class="secondary full" id="edit">Voltar e editar</button></section>`);
-  $('edit').onclick=showForm;$('export-pdf').onclick=exportPDF;$('export-word').onclick=exportWord;
+  $('edit').onclick=showForm;$('export-pdf').onclick=exportPDF;$('export-word').onclick=exportWord;$('generate-images').onclick=generateImages;
 }
 async function saveBlob(blob, filename) {
   try {
@@ -123,6 +123,25 @@ async function saveBlob(blob, filename) {
   }
 }
 
+async function generateImages() {
+  const base = $('api-base').value.trim().replace(/\\/$/, '');
+  if (!base) { alert('Informe o endereço do servidor de IA publicado.'); return; }
+  localStorage.setItem('adapta-api-base', base);
+  const button = $('generate-images'), status = $('image-status');
+  button.disabled = true; button.textContent = 'Gerando ilustrações...';
+  try {
+    const selected = state.questions.slice(0, 8);
+    for (let i = 0; i < selected.length; i++) {
+      const q = selected[i]; status.textContent = 'Criando imagem ' + (i + 1) + ' de ' + selected.length + '...';
+      const response = await fetch(base + '/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: state.subject, topic: state.topic, question: q.text }) });
+      const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Falha ao gerar imagem.');
+      state.images[q.number] = data.image;
+      const slot = $('image-slot-' + q.number); if (slot) slot.innerHTML = '<img class="worksheet-image" alt="Ilustração pedagógica" src="' + data.image + '">';
+    }
+    status.textContent = selected.length + ' ilustrações geradas. Confira se representam corretamente as questões.';
+  } catch (error) { status.textContent = error.message || 'Não foi possível gerar as imagens.'; alert(status.textContent); }
+  finally { button.disabled = false; button.textContent = 'Gerar ilustrações pedagógicas com IA'; }
+}
 async function exportPDF(){
   const pdf=new jsPDF();let y=18;
   pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('ADAPTA+ | '+state.kind,14,y);y+=10;
