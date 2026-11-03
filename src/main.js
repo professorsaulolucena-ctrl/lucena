@@ -158,9 +158,10 @@ async function exportPDF(){
   const pdf=new jsPDF();let y=18;
   pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('ADAPTA+ | '+state.kind,14,y);y+=10;
   pdf.setFont('helvetica','normal');pdf.setFontSize(11);
-  for(const line of [`Conteúdo: ${state.topic}`,`Disciplina: ${state.subject}`,`Estudante: ${state.student||'________________________'}`,`Turma: ${state.grade||'________________'}`]){const lines=pdf.splitTextToSize(line,180);pdf.text(lines,14,y);y+=lines.length*6+2;}
+  for(const line of [`Conteúdo: ${state.topic}`,`Objetivo: ${state.objective||'________________________'}`,`Orientação: ${state.instructions||'________________________'}`,`Disciplina: ${state.subject}`,`Estudante: ${state.student||'________________________'}`,`Turma: ${state.grade||'________________'}`]){const lines=pdf.splitTextToSize(line,180);pdf.text(lines,14,y);y+=lines.length*6+2;}
   y+=4;
   state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});if(q.teacherSupport){const support=pdf.splitTextToSize('Apoio ao profissional: '+q.teacherSupport,175);if(y+support.length*5>280){pdf.addPage();y=18;}pdf.setFontSize(9);pdf.text(support,20,y);y+=support.length*5+2;pdf.setFontSize(11);}if(state.images[q.number]){if(y+65>280){pdf.addPage();y=18;}pdf.addImage(state.images[q.number],'PNG',20,y,62,62);y+=67;}y+=4;});
+  pdf.addPage();pdf.setFont('helvetica','bold');pdf.setFontSize(16);pdf.text('GABARITO DO PROFESSOR',14,18);pdf.setFont('helvetica','normal');pdf.setFontSize(10);let answerY=30;state.questions.forEach(q=>{const row=pdf.splitTextToSize(q.number+'. '+(q.answer||'Resposta construída pelo estudante'),180);if(answerY+row.length*5>280){pdf.addPage();answerY=18;}pdf.text(row,14,answerY);answerY+=row.length*5+4;});
   await saveBlob(pdf.output('blob'),'ADAPTA-atividade-adaptada.pdf');
 }
 async function exportWord(){
