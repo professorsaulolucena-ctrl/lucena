@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return res.status(503).json({ error: "O serviço de imagens ainda não foi configurado no servidor." });
   try {
-    const { subject, topic, question } = req.body || {};
+    const { subject, topic, question, imageDescription } = req.body || {};
     if (![subject, topic, question].every(v => typeof v === "string" && v.trim())) {
       return res.status(400).json({ error: "Informe disciplina, conteúdo e questão." });
     }
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       "Do not include any text, letters, numbers, labels, logos, watermarks, or written symbols inside the image. Leave all instructional text to the worksheet layout.",
       "Subject: " + subject.trim().slice(0, 120),
       "Content: " + topic.trim().slice(0, 500),
-      "Question context: " + question.trim().slice(0, 900)
+      "Question context: " + question.trim().slice(0, 900),\n      "Specific visual description: " + String(imageDescription || "").slice(0, 1200)
     ].join("\n");
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
