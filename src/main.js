@@ -1,6 +1,9 @@
 import './style.css';
 import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun } from 'docx';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -9,7 +12,7 @@ const state = {
   student: '', grade: '', age: '', development: '', condition: 'TEA', support: 'Nível 1',
   reading: 'Reconhece letras', writing: 'Escreve com apoio',
   math: 'Reconhece números até 10', communication: 'Comunica-se verbalmente',
-  interests: '', strengths: '', barriers: '', notes: '', questions: []
+  interests: '', strengths: '', barriers: '', notes: '', questions: [], images: {}
 };
 const subjects = ['Língua Portuguesa','Matemática','Ciências','História','Geografia','Inglês','Arte','Educação Física','Ensino Religioso','Outra'];
 const esc = (v='') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -30,10 +33,10 @@ function showHome(){
   state.screen='home';
   frame(`<div class="section-title">O que vamos preparar hoje?</div>
   <div class="grid">
-    <button class="tile" data-kind="Atividade"><span>📝</span><b>Criar atividade</b><small>Questões e propostas adaptadas</small></button>
-    <button class="tile" data-kind="Avaliação"><span>📋</span><b>Criar avaliação</b><small>Instrumentos avaliativos acessíveis</small></button>
-    <button class="tile" data-kind="Prova"><span>🧩</span><b>Criar prova</b><small>Provas com diferentes formatos</small></button>
-    <button class="tile" id="go-history"><span>📚</span><b>Minhas atividades</b><small>Consulte os materiais salvos</small></button>
+    <button class="tile" data-kind="Atividade"><span class="tile-mark">01</span><b>Criar atividade</b><small>Questões e propostas adaptadas</small></button>
+    <button class="tile" data-kind="Avaliação"><span class="tile-mark">02</span><b>Criar avaliação</b><small>Instrumentos avaliativos acessíveis</small></button>
+    <button class="tile" data-kind="Prova"><span class="tile-mark">03</span><b>Criar prova</b><small>Provas com diferentes formatos</small></button>
+    <button class="tile" id="go-history"><span class="tile-mark">04</span><b>Minhas atividades</b><small>Consulte os materiais salvos</small></button>
   </div>
   <section class="panel"><h2>Como funciona</h2><div class="how"><b>01</b><span><strong>Informe o conteúdo</strong><small>Disciplina, tema e quantidade de questões.</small></span></div><div class="how"><b>02</b><span><strong>Descreva o estudante</strong><small>Habilidades atuais, interesses e apoios necessários.</small></span></div><div class="how"><b>03</b><span><strong>Revise e exporte</strong><small>Edite a proposta e salve em Word ou PDF.</small></span></div></section>
   <div class="note">O ADAPTA+ apoia o planejamento docente. Toda proposta precisa ser revisada pelo professor e alinhada ao currículo e à avaliação pedagógica do estudante.</div>`);
@@ -67,7 +70,7 @@ function showForm(){
     ${area('notes','Outras informações (opcional)',state.notes,'Informações pedagógicas úteis para planejar a atividade.')}
     <p class="muted">A idade de desenvolvimento é uma referência opcional, não um diagnóstico nem um limite de aprendizagem. Preserve a dignidade e a faixa etária do estudante.</p>
   </section>
-  <button class="primary" id="generate">✨ Preparar atividade adaptada</button>`);
+  <button class="primary" id="generate">Preparar atividade adaptada</button>`);
   const ids=['kind','subject','topic','quantity','format','complexity','student','grade','age','development','condition','support','reading','writing','math','communication','interests','strengths','barriers','notes'];
   ids.forEach(id=>{const el=$(id);el.addEventListener('change',()=>{state[id]=el.value;if(id==='condition')$('support-box').classList.toggle('hidden',el.value!=='TEA');});});
   $('support-box').classList.toggle('hidden',state.condition!=='TEA');
@@ -100,6 +103,26 @@ function showResult(){
   <button class="secondary full" id="edit">Voltar e editar</button></section>`);
   $('edit').onclick=showForm;$('export-pdf').onclick=exportPDF;$('export-word').onclick=exportWord;
 }
+async function saveBlob(blob, filename) {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      const saved = await Filesystem.writeFile({ path: filename, data: btoa(binary), directory: Directory.Cache });
+      await Share.share({ title: filename, text: 'Arquivo criado pelo ADAPTA+', url: saved.uri, dialogTitle: 'Salvar ou compartilhar arquivo' });
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (error) {
+    console.error('Export error', error);
+    alert('Não foi possível salvar o arquivo. Tente novamente.');
+  }
+}
+
 function exportPDF(){
   const pdf=new jsPDF();let y=18;
   pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('ADAPTA+ | '+state.kind,14,y);y+=10;
@@ -107,13 +130,13 @@ function exportPDF(){
   for(const line of [`Conteúdo: ${state.topic}`,`Disciplina: ${state.subject}`,`Estudante: ${state.student||'________________________'}`,`Turma: ${state.grade||'________________'}`]){const lines=pdf.splitTextToSize(line,180);pdf.text(lines,14,y);y+=lines.length*6+2;}
   y+=4;
   state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});y+=4;});
-  pdf.save('ADAPTA-atividade-adaptada.pdf');
+  await saveBlob(pdf.output('blob'),'ADAPTA-atividade-adaptada.pdf');
 }
 async function exportWord(){
   const children=[new Paragraph({text:'ADAPTA+ | '+state.kind,heading:HeadingLevel.TITLE}),new Paragraph({children:[new TextRun({text:'Conteúdo: ',bold:true}),new TextRun(state.topic)]}),new Paragraph('Disciplina: '+state.subject),new Paragraph('Estudante: '+(state.student||'________________________')),new Paragraph('Turma: '+(state.grade||'________________'))];
   state.questions.forEach(q=>{children.push(new Paragraph({text:q.number+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,i)=>children.push(new Paragraph(String.fromCharCode(65+i)+') '+o)));});
   children.push(new Paragraph({children:[new TextRun({text:'Material demonstrativo: revise e ajuste conforme a avaliação pedagógica do estudante.',italics:true})]}));
-  const blob=await Packer.toBlob(new Document({sections:[{children}]}));const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ADAPTA-atividade-adaptada.docx';a.click();URL.revokeObjectURL(url);
+  const blob=await Packer.toBlob(new Document({sections:[{children}]}));await saveBlob(blob,'ADAPTA-atividade-adaptada.docx');
 }
 function showHistory(){
   state.screen='history';const h=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
