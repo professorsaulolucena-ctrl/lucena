@@ -2,38 +2,40 @@
 
 Aplicativo de apoio à produção de materiais pedagógicos acessíveis.
 
-## O que esta versão contém
-- Interface responsiva para celular.
-- Perfil pedagógico com habilidades, interesses, potencialidades, barreiras e apoios.
-- Histórico local de atividades.
-- Exportação de PDF e Word.
-- Compartilhamento de arquivos no Android usando os recursos nativos do aparelho.
-- Endpoint de servidor para criar ilustrações pedagógicas com IA.
-- Inclusão das ilustrações geradas nos arquivos PDF e Word.
+## Funcionalidades implementadas no código
+- Formulário de conteúdo e perfil pedagógico.
+- Geração de atividades contextualizadas por IA, com comandos curtos, tarefas visuais, objetivos, gabarito e orientações para o profissional de apoio.
+- Geração de ilustrações pedagógicas individuais por IA, sem texto embutido, emojis ou clipart.
+- Inclusão das ilustrações no PDF e no Word.
+- Histórico local.
+- Exportação PDF e Word; no Android, os arquivos são preparados no armazenamento temporário e abertos no menu nativo de compartilhamento/salvamento.
 
-## Configurar geração de imagens por IA
+## Configuração obrigatória do serviço de IA
 
-A geração de imagens usa a OpenAI Image API no servidor. A chave **não deve ser colocada no APK, no JavaScript do aplicativo ou no repositório**.
+O aplicativo usa a OpenAI API por meio de funções serverless da Vercel. A chave **não deve ser colocada no APK, no JavaScript do aplicativo ou no repositório**.
 
 1. Importe este repositório em uma conta Vercel e publique o projeto.
-2. Nas configurações do projeto Vercel, adicione a variável de ambiente `OPENAI_API_KEY` com uma chave da API OpenAI.
+2. Nas configurações do projeto Vercel, adicione a variável de ambiente `OPENAI_API_KEY` com uma chave da OpenAI API.
 3. Faça um novo deploy para aplicar a variável.
-4. No ADAPTA+, informe a URL pública do projeto Vercel no campo **Endereço do servidor de IA**.
-5. Use o botão **Gerar ilustrações pedagógicas com IA** na atividade.
+4. No ADAPTA+, informe a URL pública do projeto Vercel no campo **Servidor seguro de IA**.
+5. Gere a atividade. Depois, na tela de revisão, use **Gerar ilustrações pedagógicas com IA**.
 
-A utilização da API de imagens pode gerar custos na conta da plataforma. É necessário ter acesso e faturamento habilitados na conta OpenAI API. A disponibilidade do modelo também depende da verificação da organização, quando exigida.
+A geração de texto usa GPT-5.5 e a geração de imagens usa GPT Image 2.5 Sunburst. A conta OpenAI API precisa ter acesso e faturamento habilitados; o uso pode gerar custos. A disponibilidade do modelo pode depender da verificação da organização.
 
-## Limitações que ainda precisam ser resolvidas
+As funções incluem um limite básico de solicitações por endereço IP em memória. Em implantação pública, recomenda-se acrescentar um serviço persistente de rate limit, autenticação de usuário e monitoramento de custos.
 
-- A elaboração de questões ainda usa modelos demonstrativos; não está conectada a um gerador de questões por IA. Não aplique sem revisão docente.
-- O servidor de imagens precisa ser publicado e configurado com a variável `OPENAI_API_KEY`.
-- A compilação do APK precisa ser confirmada em uma execução concluída do GitHub Actions antes de afirmar que o instalador está pronto.
-- O APK gerado pelo workflow é uma versão debug para teste, não uma versão assinada para distribuição pública.
+## Exportação no Android
 
-## Compilar Android
+O aplicativo usa os plugins nativos Capacitor Filesystem e Share para preparar o PDF/Word e abrir o menu Android de compartilhamento ou salvamento. No navegador, usa download de arquivo com URL temporária.
 
-O workflow **Build ADAPTA+ APK** roda em envios à branch `main`. Quando a execução terminar com sucesso, baixe o artefato `ADAPTA-plus-debug-apk` na página da execução. O ZIP contém `app-debug.apk`.
+## Compilação Android
 
-## Privacidade
+O workflow **Build ADAPTA+ APK** é executado em envios à branch `main`. Quando uma execução terminar com sucesso, baixe o artefato `ADAPTA-plus-debug-apk` na página da execução. O ZIP contém `app-debug.apk`.
 
-O formulário deve conter apenas informações pedagógicas necessárias. Evite nomes completos, documentos, endereços e informações clínicas desnecessárias. O histórico é armazenado localmente no dispositivo.
+O APK debug é para teste e instalação manual. A distribuição pública exige assinatura de release. A compilação ainda precisa ser confirmada no GitHub Actions.
+
+## Revisão pedagógica e privacidade
+
+A IA produz uma proposta, não substitui a avaliação pedagógica do professor. Confira o alinhamento curricular, a correção das respostas, a adequação das imagens e os apoios indicados antes de aplicar.
+
+Informe somente dados pedagógicos necessários. Evite nomes completos, documentos, endereços e informações clínicas desnecessárias. O histórico desta versão fica armazenado localmente no dispositivo.
