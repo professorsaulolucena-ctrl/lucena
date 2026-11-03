@@ -1,9 +1,17 @@
+const rateLimits = new Map();
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", process.env.APP_ORIGIN || "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Método não permitido." });
+  const ip = String(req.headers["x-forwarded-for"] || "unknown").split(",")[0].trim();
+  const now = Date.now();
+  const limit = rateLimits.get(ip) || { start: now, count: 0 };
+  if (now - limit.start > 60000) { limit.start = now; limit.count = 0; }
+  if (limit.count >= 8) return res.status(429).json({ error: "Muitas solicitações. Aguarde um minuto e tente novamente." });
+  limit.count += 1; rateLimits.set(ip, limit);
   const key = process.env.OPENAI_API_KEY;
   if (!key) return res.status(503).json({ error: "O serviço de IA ainda não foi configurado no servidor." });
   try {
