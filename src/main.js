@@ -148,12 +148,12 @@ async function exportPDF(){
   pdf.setFont('helvetica','normal');pdf.setFontSize(11);
   for(const line of [`Conteúdo: ${state.topic}`,`Disciplina: ${state.subject}`,`Estudante: ${state.student||'________________________'}`,`Turma: ${state.grade||'________________'}`]){const lines=pdf.splitTextToSize(line,180);pdf.text(lines,14,y);y+=lines.length*6+2;}
   y+=4;
-  state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});y+=4;});
+  state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});if(state.images[q.number]){if(y+65>280){pdf.addPage();y=18;}pdf.addImage(state.images[q.number],'PNG',20,y,62,62);y+=67;}y+=4;});
   await saveBlob(pdf.output('blob'),'ADAPTA-atividade-adaptada.pdf');
 }
 async function exportWord(){
   const children=[new Paragraph({text:'ADAPTA+ | '+state.kind,heading:HeadingLevel.TITLE}),new Paragraph({children:[new TextRun({text:'Conteúdo: ',bold:true}),new TextRun(state.topic)]}),new Paragraph('Disciplina: '+state.subject),new Paragraph('Estudante: '+(state.student||'________________________')),new Paragraph('Turma: '+(state.grade||'________________'))];
-  state.questions.forEach(q=>{children.push(new Paragraph({text:q.number+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,i)=>children.push(new Paragraph(String.fromCharCode(65+i)+') '+o)));});
+  state.questions.forEach(q=>{children.push(new Paragraph({text:q.number+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,i)=>children.push(new Paragraph(String.fromCharCode(65+i)+') '+o)));if(state.images[q.number]){const raw=atob(state.images[q.number].split(',')[1]);const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));children.push(new Paragraph({children:[new ImageRun({data:bytes,transformation:{width:320,height:320}})]}));}});
   children.push(new Paragraph({children:[new TextRun({text:'Material demonstrativo: revise e ajuste conforme a avaliação pedagógica do estudante.',italics:true})]}));
   const blob=await Packer.toBlob(new Document({sections:[{children}]}));await saveBlob(blob,'ADAPTA-atividade-adaptada.docx');
 }
