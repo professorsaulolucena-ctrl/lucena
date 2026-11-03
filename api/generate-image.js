@@ -19,7 +19,8 @@ export default async function handler(req, res) {
       "Do not include any text, letters, numbers, labels, logos, watermarks, or written symbols inside the image. Leave all instructional text to the worksheet layout.",
       "Subject: " + subject.trim().slice(0, 120),
       "Content: " + topic.trim().slice(0, 500),
-      "Question context: " + question.trim().slice(0, 900),\n      "Specific visual description: " + String(imageDescription || "").slice(0, 1200)
+      "Question context: " + question.trim().slice(0, 900),
+      "Specific visual description: " + String(imageDescription || "").slice(0, 1200)
     ].join("\n");
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
