@@ -77,7 +77,7 @@ function showForm(){
   $('generate').onclick=async()=>{ids.forEach(id=>{const el=$(id);if(el)state[id]=el.value;});if(!state.topic.trim()){alert('Informe o conteúdo trabalhado.');return;}state.apiBase=$('api-base').value.trim();localStorage.setItem('adapta-api-base',state.apiBase);await generateActivity();};
 }
 async function generateActivity() {
-  const base = state.apiBase.replace(/\\/$/, '');
+  const base = state.apiBase.replace(/\/$/, '');
   if (!base) { alert('Para gerar uma atividade profissional com IA, primeiro publique o servidor e informe sua URL.'); return; }
   const button = $('generate'); button.disabled = true; button.textContent = 'Elaborando atividade...';
   try {
@@ -107,10 +107,10 @@ function saveHistory(){
 function showResult(){
   state.screen='result';
   frame(`<div class="section-title">Sua atividade está pronta para revisão</div><section class="panel">
-  <div class="result-head"><span class="badge">RASCUNHO DEMONSTRATIVO</span><h2>${esc(state.topic)}</h2><p class="muted">${esc(state.subject)} • ${esc(state.kind)} • ${state.questions.length} questões</p></div>
+  <div class="result-head"><span class="badge">${state.generatedByAI ? "GERADA COM IA" : "RASCUNHO"}</span><h2>${esc(state.title||state.topic)}</h2><p class="muted">${esc(state.objective||"")}</p><p class="muted">${esc(state.subject)} • ${esc(state.kind)} • ${state.questions.length} questões</p></div>
   <p class="muted">Estudante: ${esc(state.student||'Não informado')} • ${esc(state.grade)}</p>
-  ${state.questions.map(q=>`<div class="question"><b>${q.number}. ${esc(q.text)}</b><div class="image-slot" id="image-slot-${q.number}">${state.images[q.number] ? `<img class="worksheet-image" src="${state.images[q.number]}" alt="Ilustração pedagógica">` : ""}</div><div class="options">${q.opts.map((o,i)=>`<div class="option">${String.fromCharCode(65+i)}) ${esc(o)}</div>`).join('')}</div></div>`).join('')}
-  <div class="ai-tools"><label for="api-base">Endereço do servidor de IA</label><input class="field" id="api-base" placeholder="https://seu-projeto.vercel.app" value="${esc(localStorage.getItem('adapta-api-base')||import.meta.env.VITE_API_BASE_URL||'')}"><p class="muted">A chave de IA fica protegida no servidor, nunca dentro do APK.</p><button class="secondary full" id="generate-images">Gerar ilustrações pedagógicas com IA</button><p class="muted" id="image-status">As imagens serão criadas para as questões, sem emojis, letras ou marcas d’água.</p></div><div class="note">As questões ainda são demonstrativas. Revise a relação entre cada questão, o objetivo curricular e a imagem antes de aplicar.</div>
+  ${state.questions.map(q=>`<div class="question"><b>${q.number}. ${esc(q.text)}</b>${q.teacherSupport?`<p class="teacher-support"><strong>Apoio ao profissional:</strong> ${esc(q.teacherSupport)}</p>`:""}<details class="answer-key"><summary>Ver gabarito</summary>${esc(q.answer||"Não informado")}</details><div class="image-slot" id="image-slot-${q.number}">${state.images[q.number] ? `<img class="worksheet-image" src="${state.images[q.number]}" alt="Ilustração pedagógica">` : ""}</div><div class="options">${q.opts.map((o,i)=>`<div class="option">${String.fromCharCode(65+i)}) ${esc(o)}</div>`).join('')}</div></div>`).join('')}
+  <div class="ai-tools"><label for="api-base">Endereço do servidor de IA</label><input class="field" id="api-base" placeholder="https://seu-projeto.vercel.app" value="${esc(localStorage.getItem('adapta-api-base')||import.meta.env.VITE_API_BASE_URL||'')}"><p class="muted">A chave de IA fica protegida no servidor, nunca dentro do APK.</p><button class="secondary full" id="generate-images">Gerar ilustrações pedagógicas com IA</button><p class="muted" id="image-status">As imagens serão criadas para as questões, sem emojis, letras ou marcas d’água.</p></div><div class="note">Revise a adequação curricular, a resposta esperada e o nível de apoio antes de aplicar. A IA auxilia o planejamento; a decisão pedagógica é do professor.</div>
   <div class="row"><button class="secondary" id="export-word">Baixar Word</button><button class="primary" id="export-pdf">Baixar PDF</button></div>
   <button class="secondary full" id="edit">Voltar e editar</button></section>`);
   $('edit').onclick=showForm;$('export-pdf').onclick=exportPDF;$('export-word').onclick=exportWord;$('generate-images').onclick=generateImages;
@@ -145,7 +145,7 @@ async function generateImages() {
     const selected = state.questions.slice(0, 8);
     for (let i = 0; i < selected.length; i++) {
       const q = selected[i]; status.textContent = 'Criando imagem ' + (i + 1) + ' de ' + selected.length + '...';
-      const response = await fetch(base + '/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: state.subject, topic: state.topic, question: q.text }) });
+      const response = await fetch(base + '/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: state.subject, topic: state.topic, question: q.text, imageDescription: q.imageDescription || q.text }) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Falha ao gerar imagem.');
       state.images[q.number] = data.image;
       const slot = $('image-slot-' + q.number); if (slot) slot.innerHTML = '<img class="worksheet-image" alt="Ilustração pedagógica" src="' + data.image + '">';
