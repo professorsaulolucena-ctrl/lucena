@@ -12,7 +12,7 @@ const state = {
   student: '', grade: '', age: '', development: '', condition: 'TEA', support: 'Nível 1',
   reading: 'Reconhece letras', writing: 'Escreve com apoio',
   math: 'Reconhece números até 10', communication: 'Comunica-se verbalmente',
-  interests: '', strengths: '', barriers: '', notes: '', questions: [], images: {}
+  interests: '', strengths: '', barriers: '', notes: '', questions: [], images: {}, apiBase: localStorage.getItem('adapta-api-base') || '', generatedByAI: false, title: '', objective: ''
 };
 const subjects = ['Língua Portuguesa','Matemática','Ciências','História','Geografia','Inglês','Arte','Educação Física','Ensino Religioso','Outra'];
 const esc = (v='') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -52,7 +52,7 @@ function showForm(){
     <label>Disciplina</label>${select('subject',subjects,state.subject)}
     ${area('topic','Conteúdo / tema trabalhado',state.topic,'Ex.: Figuras de linguagem: metáfora e comparação')}
     <div class="row"><div><label>Quantidade de questões</label>${select('quantity',['3','5','8','10','12','15','20'],state.quantity)}</div><div><label>Formato</label>${select('format',['Texto e imagens','Somente texto','Predominantemente visual'],state.format)}</div></div>
-    <label>Nível de complexidade</label>${select('complexity',['A IA define','Muito simples','Simples','Intermediário'],state.complexity)}
+    <label>Nível de complexidade</label>${select('complexity',['A IA define','Muito simples','Simples','Intermediário'],state.complexity)}\n    ${input('api-base','Servidor seguro de IA',state.apiBase,'https://seu-projeto.vercel.app')}
   </section>
   <div class="section-title">2. Perfil pedagógico do estudante</div>
   <section class="panel">
@@ -71,10 +71,22 @@ function showForm(){
     <p class="muted">A idade de desenvolvimento é uma referência opcional, não um diagnóstico nem um limite de aprendizagem. Preserve a dignidade e a faixa etária do estudante.</p>
   </section>
   <button class="primary" id="generate">Preparar atividade adaptada</button>`);
-  const ids=['kind','subject','topic','quantity','format','complexity','student','grade','age','development','condition','support','reading','writing','math','communication','interests','strengths','barriers','notes'];
-  ids.forEach(id=>{const el=$(id);el.addEventListener('change',()=>{state[id]=el.value;if(id==='condition')$('support-box').classList.toggle('hidden',el.value!=='TEA');});});
+  const ids=['kind','subject','topic','quantity','format','complexity','student','grade','age','development','condition','support','reading','writing','math','communication','interests','strengths','barriers','notes','api-base'];
+  ids.forEach(id=>{const el=$(id);el.addEventListener('change',()=>{state[id]=el.value;if(id==='api-base'){state.apiBase=el.value.trim();localStorage.setItem('adapta-api-base',state.apiBase);}if(id==='condition')$('support-box').classList.toggle('hidden',el.value!=='TEA');});});
   $('support-box').classList.toggle('hidden',state.condition!=='TEA');
-  $('generate').onclick=()=>{ids.forEach(id=>{const el=$(id);if(el)state[id]=el.value;});if(!state.topic.trim()){alert('Informe o conteúdo trabalhado.');return;}state.questions=buildDraftQuestions();saveHistory();showResult();};
+  $('generate').onclick=async()=>{ids.forEach(id=>{const el=$(id);if(el)state[id]=el.value;});if(!state.topic.trim()){alert('Informe o conteúdo trabalhado.');return;}state.apiBase=$('api-base').value.trim();localStorage.setItem('adapta-api-base',state.apiBase);await generateActivity();};
+}
+async function generateActivity() {
+  const base = state.apiBase.replace(/\\/$/, '');
+  if (!base) { alert('Para gerar uma atividade profissional com IA, primeiro publique o servidor e informe sua URL.'); return; }
+  const button = $('generate'); button.disabled = true; button.textContent = 'Elaborando atividade...';
+  try {
+    const response = await fetch(base + '/api/generate-activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...state, quantity: Number(state.quantity) }) });
+    const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Não foi possível gerar a atividade.');
+    const activity = data.activity; state.title = activity.title; state.objective = activity.objective; state.generatedByAI = true; state.images = {};
+    state.questions = activity.questions.map((q, i) => ({ number: i + 1, text: q.prompt, opts: q.options, answer: q.correctAnswer, teacherSupport: q.teacherSupport, imageDescription: q.imageDescription, responseType: q.responseType }));
+    saveHistory(); showResult();
+  } catch (error) { button.disabled = false; button.textContent = 'Preparar atividade adaptada'; alert(error.message || 'Falha na conexão com a IA.'); }
 }
 function buildDraftQuestions(){
   const t=state.topic.trim();
@@ -89,7 +101,7 @@ function buildDraftQuestions(){
 }
 function saveHistory(){
   const history=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
-  history.unshift({topic:state.topic,subject:state.subject,kind:state.kind,questions:state.questions,date:new Date().toLocaleDateString('pt-BR')});
+  history.unshift({topic:state.topic,subject:state.subject,kind:state.kind,title:state.title,objective:state.objective,generatedByAI:state.generatedByAI,questions:state.questions,date:new Date().toLocaleDateString('pt-BR')});
   localStorage.setItem('adapta-plus-history',JSON.stringify(history.slice(0,40)));
 }
 function showResult(){
@@ -160,6 +172,6 @@ async function exportWord(){
 function showHistory(){
   state.screen='history';const h=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
   frame(`<div class="section-title">Histórico de atividades</div>${h.length?h.map((x,i)=>`<section class="panel"><b>${esc(x.topic)}</b><p class="muted">${esc(x.subject)} • ${esc(x.kind)} • ${x.questions.length} questões • ${esc(x.date)}</p><button class="secondary" data-open="${i}">Abrir</button></section>`).join(''):'<section class="panel muted">Nenhuma atividade salva neste dispositivo ainda.</section>'}`);
-  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const x=h[Number(b.dataset.open)];state.topic=x.topic;state.subject=x.subject;state.kind=x.kind;state.questions=x.questions;showResult();});
+  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const x=h[Number(b.dataset.open)];state.topic=x.topic;state.subject=x.subject;state.kind=x.kind;state.title=x.title||x.topic;state.objective=x.objective||'';state.generatedByAI=!!x.generatedByAI;state.questions=x.questions;state.images={};showResult();});
 }
 showHome();
