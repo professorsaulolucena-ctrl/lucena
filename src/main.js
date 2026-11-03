@@ -123,7 +123,7 @@ async function saveBlob(blob, filename) {
   }
 }
 
-function exportPDF(){
+async function exportPDF(){
   const pdf=new jsPDF();let y=18;
   pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('ADAPTA+ | '+state.kind,14,y);y+=10;
   pdf.setFont('helvetica','normal');pdf.setFontSize(11);
