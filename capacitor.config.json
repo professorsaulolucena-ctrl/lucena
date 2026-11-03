@@ -1,0 +1,8 @@
+{
+  "appId": "br.com.adaptamais.app",
+  "appName": "ADAPTA+",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
