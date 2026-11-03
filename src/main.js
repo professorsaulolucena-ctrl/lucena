@@ -124,7 +124,7 @@ async function saveBlob(blob, filename) {
 }
 
 async function generateImages() {
-  const base = $('api-base').value.trim().replace(/\\/$/, '');
+  const base = $('api-base').value.trim().replace(/\/$/, '');
   if (!base) { alert('Informe o endereço do servidor de IA publicado.'); return; }
   localStorage.setItem('adapta-api-base', base);
   const button = $('generate-images'), status = $('image-status');
