@@ -1,9 +1,123 @@
-import './style.css';import {jsPDF} from 'jspdf';import {Document,Packer,Paragraph,TextRun,HeadingLevel} from 'docx';
-const $=s=>document.querySelector(s),S={kind:'Atividade',subject:'Língua Portuguesa',topic:'',qty:5,format:'Texto e imagens',condition:'TEA',support:'Nível 1',age:'',dev:'',grade:'',reading:'Reconhece letras',writing:'Escreve com apoio',communication:'Comunica-se verbalmente',interests:'',skills:'',barriers:'',questions:[]};
-const subjects=['Língua Portuguesa','Matemática','Ciências','História','Geografia','Inglês','Arte','Educação Física','Ensino Religioso'];
-function shell(body){$('#app').innerHTML='<div class="app"><header class="hero"><div class="logo">ADAPTA<span>+</span></div><h1>Atividades que respeitam cada jeito de aprender.</h1><p>Assistente pedagógico para adaptação de atividades e avaliações.</p></header>'+body+'</div>'}
-function home(){shell('<div class="title">O que vamos preparar hoje?</div><div class="grid"><button class="tile" data-kind="Atividade">📝<b>Criar atividade</b><small>Atividades adaptadas</small></button><button class="tile" data-kind="Avaliação">📋<b>Criar avaliação</b><small>Avaliações acessíveis</small></button><button class="tile" data-kind="Prova">🧩<b>Criar prova</b><small>Instrumentos inclusivos</small></button><button class="tile" id="history">📚<b>Histórico</b><small>Materiais salvos</small></button></div><div class="panel"><b>Como funciona</b><p class="muted">Informe o conteúdo, descreva o perfil pedagógico do estudante e gere uma proposta para revisar, editar e exportar.</p></div><div class="note">O professor deve revisar cada atividade e verificar se ela respeita o currículo, as habilidades e as necessidades observadas do estudante.</div>');document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{S.kind=b.dataset.kind;form()});$('#history').onclick=hist}
-function form(){shell('<div class="title">1. Conteúdo da aula</div><section class="panel"><label class="label">Tipo de material</label><select id="kind"><option>Atividade</option><option>Avaliação</option><option>Prova</option></select><label class="label">Disciplina</label><select id="subject">'+subjects.map(x=>'<option>'+x+'</option>').join('')+'</select><label class="label">Conteúdo / tema</label><textarea id="topic" placeholder="Ex.: Figuras de linguagem, frações, sistema solar..."></textarea><div class="row"><div><label class="label">Quantidade</label><select id="qty">'+[3,5,8,10,12,15,20].map(n=>'<option>'+n+'</option>').join('')+'</select></div><div><label class="label">Formato</label><select id="format"><option>Texto e imagens</option><option>Somente texto</option><option>Predominantemente visual</option></select></div></div></section><div class="title">2. Perfil do estudante</div><section class="panel"><div class="row"><div><label class="label">Idade cronológica</label><input class="field" id="age" placeholder="Ex.: 10 anos"></div><div><label class="label">Ano / turma</label><input class="field" id="grade" placeholder="Ex.: 5º ano"></div></div><label class="label">Deficiência / condição</label><select id="condition"><option>TEA</option><option>Deficiência Intelectual</option><option>Deficiência Física</option><option>Deficiência Visual</option><option>Deficiência Auditiva</option><option>TDAH</option><option>Deficiência Múltipla</option><option>Síndrome de Down</option><option>Outra</option></select><div id="supportbox"><label class="label">Nível de suporte (TEA)</label><select id="support"><option>Nível 1</option><option>Nível 2</option><option>Nível 3</option><option>Não informado</option></select></div><label class="label">Desenvolvimento estimado (opcional)</label><input class="field" id="dev" placeholder="Ex.: 5 anos — não substitui avaliação"><label class="label">Leitura</label><select id="reading"><option>Ainda não reconhece letras</option><option>Reconhece letras</option><option>Lê sílabas</option><option>Lê palavras</option><option>Lê frases</option><option>Lê pequenos textos</option><option>Lê e interpreta textos</option></select><label class="label">Escrita</label><select id="writing"><option>Ainda não escreve convencionalmente</option><option>Escreve com apoio</option><option>Copia palavras</option><option>Escreve palavras</option><option>Escreve frases</option><option>Produz pequenos textos</option></select><label class="label">Comunicação</label><select id="communication"><option>Comunica-se verbalmente</option><option>Usa frases curtas</option><option>Usa comunicação alternativa</option><option>Comunica-se por Libras</option><option>Comunicação não verbal</option><option>Outra forma</option></select><label class="label">Interesses e potencialidades</label><textarea id="interests" placeholder="Ex.: animais, música, jogos..."></textarea><label class="label">O que já consegue fazer?</label><textarea id="skills" placeholder="Habilidades e conhecimentos observados"></textarea><label class="label">Barreiras e apoios necessários</label><textarea id="barriers" placeholder="Ex.: comandos curtos, apoio visual, tempo ampliado..."></textarea></section><button class="btn" id="generate">✨ Gerar atividade adaptada</button>');$('#kind').value=S.kind;$('#kind').onchange=e=>S.kind=e.target.value;$('#condition').onchange=e=>$('#supportbox').classList.toggle('hidden',e.target.value!=='TEA');$('#generate').onclick=()=>{['subject','topic','qty','format','condition','support','age','dev','grade','reading','writing','communication','interests','skills','barriers'].forEach(k=>{let el=$('#'+k);if(el)S[k]=el.value});if(!S.topic.trim())return alert('Informe o conteúdo da aula.');S.questions=Array.from({length:+S.qty},(_,i)=>({text:'Sobre '+S.topic+', qual alternativa apresenta uma ideia relacionada ao que estudamos?',opts:['Uma informação relacionada ao conteúdo','Uma informação sem relação com o tema','Ainda preciso de ajuda']}));let h=JSON.parse(localStorage.getItem('adapta-history')||'[]');h.unshift({topic:S.topic,subject:S.subject,questions:S.questions});localStorage.setItem('adapta-history',JSON.stringify(h.slice(0,30)));result()}}
-function result(){shell('<div class="title">Atividade — revise antes de usar</div><section class="panel"><h2>'+S.topic+'</h2><p class="muted">'+S.subject+' • '+S.kind+' • '+S.questions.length+' questões</p>'+S.questions.map((q,i)=>'<div class="question"><b>'+(i+1)+'. '+q.text+'</b>'+(S.format!=='Somente texto'&&i%2===0?'<p style="font-size:28px">🧩 🔎 ⭐</p>':'')+q.opts.map((o,j)=>'<div class="option">'+String.fromCharCode(65+j)+') '+o+'</div>').join('')+'</div>').join('')+'<div class="note">Rascunho demonstrativo. A geração com IA conectada será ativada em uma próxima etapa. Revise o nível de linguagem, o objetivo curricular e a adequação ao estudante.</div><div class="row"><button class="secondary" id="word">Baixar Word</button><button class="btn" id="pdf">Baixar PDF</button></div><button class="secondary" id="again">Editar / nova atividade</button></section>');$('#again').onclick=form;$('#pdf').onclick=()=>{let d=new jsPDF(),y=18;d.setFontSize(18);d.text('ADAPTA+ | '+S.kind,14,y);y+=10;d.setFontSize(12);d.text('Conteúdo: '+S.topic,14,y);y+=10;S.questions.forEach((q,i)=>{d.text((i+1)+'. '+q.text,14,y);y+=8;q.opts.forEach((o,j)=>{d.text(String.fromCharCode(65+j)+') '+o,20,y);y+=7});y+=3});d.save('atividade-adaptada.pdf')};$('#word').onclick=async()=>{let c=[new Paragraph({text:'ADAPTA+ | '+S.kind,heading:HeadingLevel.TITLE}),new Paragraph('Conteúdo: '+S.topic),new Paragraph('Disciplina: '+S.subject)];S.questions.forEach((q,i)=>{c.push(new Paragraph({text:(i+1)+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,j)=>c.push(new Paragraph(String.fromCharCode(65+j)+') '+o)))});let b=await Packer.toBlob(new Document({sections:[{children:c]}})),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='atividade-adaptada.docx';a.click();URL.revokeObjectURL(u)}}
-function hist(){let h=JSON.parse(localStorage.getItem('adapta-history')||'[]');shell('<div class="title">Histórico</div>'+(h.length?h.map((x,i)=>'<div class="panel"><b>'+x.topic+'</b><p class="muted">'+x.subject+' • '+x.questions.length+' questões</p><button class="secondary" data-h="'+i+'">Abrir</button></div>').join(''):'<div class="panel muted">Nenhuma atividade salva ainda.</div>')+'<button class="secondary" id="back">Voltar</button>');$('#back').onclick=home;document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{let x=h[+b.dataset.h];S.topic=x.topic;S.subject=x.subject;S.questions=x.questions;result()})}
-home();
+import './style.css';
+import { jsPDF } from 'jspdf';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+
+const $ = (id) => document.getElementById(id);
+const state = {
+  screen: 'home', kind: 'Atividade', subject: 'Língua Portuguesa', topic: '',
+  quantity: '5', format: 'Texto e imagens', complexity: 'A IA define',
+  student: '', grade: '', age: '', development: '', condition: 'TEA', support: 'Nível 1',
+  reading: 'Reconhece letras', writing: 'Escreve com apoio',
+  math: 'Reconhece números até 10', communication: 'Comunica-se verbalmente',
+  interests: '', strengths: '', barriers: '', notes: '', questions: []
+};
+const subjects = ['Língua Portuguesa','Matemática','Ciências','História','Geografia','Inglês','Arte','Educação Física','Ensino Religioso','Outra'];
+const esc = (v='') => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const select = (id, values, selected) => `<select id="${id}">${values.map(v=>`<option ${v===selected?'selected':''}>${esc(v)}</option>`).join('')}</select>`;
+const input = (id, label, value, placeholder='') => `<label for="${id}">${label}</label><input class="field" id="${id}" value="${esc(value)}" placeholder="${placeholder}">`;
+const area = (id, label, value, placeholder='') => `<label for="${id}">${label}</label><textarea id="${id}" placeholder="${placeholder}">${esc(value)}</textarea>`;
+
+function frame(content) {
+  $('app').innerHTML = `<div class="app">
+    <header class="hero"><div class="brand"><div><div class="logo">ADAPTA<span>+</span></div><div class="tagline">Assistente pedagógico inclusivo</div></div><div class="brand-icon">✦</div></div>
+    <h1>Atividades que respeitam cada jeito de aprender.</h1><p>Planeje adaptações com foco nas habilidades, nos interesses e nas necessidades de cada estudante.</p></header>
+    ${content}
+    <nav class="bottom-nav"><button data-nav="home">⌂<small>Início</small></button><button data-nav="form">✎<small>Criar</small></button><button data-nav="history">▤<small>Histórico</small></button></nav>
+  </div>`;
+  document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{const v=b.dataset.nav;v==='form'?showForm():v==='history'?showHistory():showHome();});
+}
+function showHome(){
+  state.screen='home';
+  frame(`<div class="section-title">O que vamos preparar hoje?</div>
+  <div class="grid">
+    <button class="tile" data-kind="Atividade"><span>📝</span><b>Criar atividade</b><small>Questões e propostas adaptadas</small></button>
+    <button class="tile" data-kind="Avaliação"><span>📋</span><b>Criar avaliação</b><small>Instrumentos avaliativos acessíveis</small></button>
+    <button class="tile" data-kind="Prova"><span>🧩</span><b>Criar prova</b><small>Provas com diferentes formatos</small></button>
+    <button class="tile" id="go-history"><span>📚</span><b>Minhas atividades</b><small>Consulte os materiais salvos</small></button>
+  </div>
+  <section class="panel"><h2>Como funciona</h2><div class="how"><b>01</b><span><strong>Informe o conteúdo</strong><small>Disciplina, tema e quantidade de questões.</small></span></div><div class="how"><b>02</b><span><strong>Descreva o estudante</strong><small>Habilidades atuais, interesses e apoios necessários.</small></span></div><div class="how"><b>03</b><span><strong>Revise e exporte</strong><small>Edite a proposta e salve em Word ou PDF.</small></span></div></section>
+  <div class="note">O ADAPTA+ apoia o planejamento docente. Toda proposta precisa ser revisada pelo professor e alinhada ao currículo e à avaliação pedagógica do estudante.</div>`);
+  document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{state.kind=b.dataset.kind;showForm();});
+  $('go-history').onclick=showHistory;
+}
+function showForm(){
+  state.screen='form';
+  frame(`<div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  <div class="section-title">1. Conteúdo da atividade</div>
+  <section class="panel">
+    <label>Tipo de material</label>${select('kind',['Atividade','Avaliação','Prova'],state.kind)}
+    <label>Disciplina</label>${select('subject',subjects,state.subject)}
+    ${area('topic','Conteúdo / tema trabalhado',state.topic,'Ex.: Figuras de linguagem: metáfora e comparação')}
+    <div class="row"><div><label>Quantidade de questões</label>${select('quantity',['3','5','8','10','12','15','20'],state.quantity)}</div><div><label>Formato</label>${select('format',['Texto e imagens','Somente texto','Predominantemente visual'],state.format)}</div></div>
+    <label>Nível de complexidade</label>${select('complexity',['A IA define','Muito simples','Simples','Intermediário'],state.complexity)}
+  </section>
+  <div class="section-title">2. Perfil pedagógico do estudante</div>
+  <section class="panel">
+    <div class="row"><div>${input('student','Nome (opcional)',state.student,'Nome do estudante')}</div><div>${input('grade','Ano / turma',state.grade,'Ex.: 6º ano')}</div></div>
+    <div class="row"><div>${input('age','Idade cronológica',state.age,'Ex.: 10 anos')}</div><div>${input('development','Desenvolvimento estimado (opcional)',state.development,'Ex.: 5 anos')}</div></div>
+    <label>Deficiência / condição</label>${select('condition',['TEA','Deficiência Intelectual','Deficiência Física','Deficiência Visual','Deficiência Auditiva','TDAH','Deficiência Múltipla','Síndrome de Down','Outra'],state.condition)}
+    <div id="support-box"><label>Nível de suporte (TEA)</label>${select('support',['Nível 1','Nível 2','Nível 3','Não informado'],state.support)}</div>
+    <label>Leitura</label>${select('reading',['Ainda não reconhece letras','Reconhece letras','Lê sílabas','Lê palavras','Lê frases','Lê pequenos textos','Lê e interpreta textos'],state.reading)}
+    <label>Escrita</label>${select('writing',['Ainda não escreve convencionalmente','Escreve com apoio','Copia palavras','Escreve palavras','Escreve frases','Produz pequenos textos'],state.writing)}
+    <label>Conhecimentos matemáticos</label>${select('math',['Ainda em construção','Reconhece números até 10','Reconhece números até 100','Realiza operações simples','Resolve problemas matemáticos'],state.math)}
+    <label>Comunicação</label>${select('communication',['Comunica-se verbalmente','Usa frases curtas','Usa comunicação alternativa','Comunica-se por Libras','Comunicação não verbal','Outra forma'],state.communication)}
+    ${area('interests','Interesses e potencialidades',state.interests,'Ex.: gosta de animais, música, jogos, futebol...')}
+    ${area('strengths','O que o estudante já consegue fazer?',state.strengths,'Descreva habilidades e conhecimentos observados.')}
+    ${area('barriers','Barreiras e apoios necessários',state.barriers,'Ex.: comandos curtos, apoio visual, tempo ampliado...')}
+    ${area('notes','Outras informações (opcional)',state.notes,'Informações pedagógicas úteis para planejar a atividade.')}
+    <p class="muted">A idade de desenvolvimento é uma referência opcional, não um diagnóstico nem um limite de aprendizagem. Preserve a dignidade e a faixa etária do estudante.</p>
+  </section>
+  <button class="primary" id="generate">✨ Preparar atividade adaptada</button>`);
+  const ids=['kind','subject','topic','quantity','format','complexity','student','grade','age','development','condition','support','reading','writing','math','communication','interests','strengths','barriers','notes'];
+  ids.forEach(id=>{const el=$(id);el.addEventListener('change',()=>{state[id]=el.value;if(id==='condition')$('support-box').classList.toggle('hidden',el.value!=='TEA');});});
+  $('support-box').classList.toggle('hidden',state.condition!=='TEA');
+  $('generate').onclick=()=>{ids.forEach(id=>{const el=$(id);if(el)state[id]=el.value;});if(!state.topic.trim()){alert('Informe o conteúdo trabalhado.');return;}state.questions=buildDraftQuestions();saveHistory();showResult();};
+}
+function buildDraftQuestions(){
+  const t=state.topic.trim();
+  const bank=[
+    {text:`Qual alternativa apresenta uma ideia relacionada ao conteúdo “${t}”?`,opts:[`Uma informação ligada a ${t}`,'Uma informação sem relação com o tema','Ainda preciso de ajuda']},
+    {text:`Complete: Hoje estamos aprendendo sobre ______.`,opts:[t,'Um assunto diferente','Não sei']},
+    {text:`O que devemos observar quando estudamos ${t}?`,opts:['As características e exemplos do conteúdo','Somente a cor da página','Um assunto que não foi trabalhado']},
+    {text:`Escolha um exemplo que pode ser usado para conversar sobre ${t}.`,opts:['Um exemplo explicado pelo professor','Uma palavra sem relação com o tema','Nenhuma das opções']},
+    {text:`Depois da aula sobre ${t}, o que você consegue explicar?`,opts:['Uma ideia importante do conteúdo','Uma informação aleatória','Preciso de apoio para responder']}
+  ];
+  return Array.from({length:Number(state.quantity)},(_,i)=>({...bank[i%bank.length],number:i+1}));
+}
+function saveHistory(){
+  const history=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
+  history.unshift({topic:state.topic,subject:state.subject,kind:state.kind,questions:state.questions,date:new Date().toLocaleDateString('pt-BR')});
+  localStorage.setItem('adapta-plus-history',JSON.stringify(history.slice(0,40)));
+}
+function showResult(){
+  state.screen='result';
+  frame(`<div class="section-title">Sua atividade está pronta para revisão</div><section class="panel">
+  <div class="result-head"><span class="badge">RASCUNHO DEMONSTRATIVO</span><h2>${esc(state.topic)}</h2><p class="muted">${esc(state.subject)} • ${esc(state.kind)} • ${state.questions.length} questões</p></div>
+  <p class="muted">Estudante: ${esc(state.student||'Não informado')} • ${esc(state.grade)}</p>
+  ${state.questions.map(q=>`<div class="question"><b>${q.number}. ${esc(q.text)}</b>${state.format!=='Somente texto'&&q.number%2===1?'<div class="visual-cue">🧩　🔎　⭐</div>':''}<div class="options">${q.opts.map((o,i)=>`<div class="option">${String.fromCharCode(65+i)}) ${esc(o)}</div>`).join('')}</div></div>`).join('')}
+  <div class="note">A geração apresentada nesta versão é demonstrativa e ainda não utiliza IA externa. Revise os exemplos e substitua-os por questões diretamente vinculadas ao objetivo curricular antes de aplicar.</div>
+  <div class="row"><button class="secondary" id="export-word">Baixar Word</button><button class="primary" id="export-pdf">Baixar PDF</button></div>
+  <button class="secondary full" id="edit">Voltar e editar</button></section>`);
+  $('edit').onclick=showForm;$('export-pdf').onclick=exportPDF;$('export-word').onclick=exportWord;
+}
+function exportPDF(){
+  const pdf=new jsPDF();let y=18;
+  pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('ADAPTA+ | '+state.kind,14,y);y+=10;
+  pdf.setFont('helvetica','normal');pdf.setFontSize(11);
+  for(const line of [`Conteúdo: ${state.topic}`,`Disciplina: ${state.subject}`,`Estudante: ${state.student||'________________________'}`,`Turma: ${state.grade||'________________'}`]){const lines=pdf.splitTextToSize(line,180);pdf.text(lines,14,y);y+=lines.length*6+2;}
+  y+=4;
+  state.questions.forEach(q=>{const lines=pdf.splitTextToSize(q.number+'. '+q.text,180);if(y+lines.length*6>275){pdf.addPage();y=18;}pdf.setFont('helvetica','bold');pdf.text(lines,14,y);y+=lines.length*6+2;pdf.setFont('helvetica','normal');q.opts.forEach((o,i)=>{if(y>280){pdf.addPage();y=18;}pdf.text(String.fromCharCode(65+i)+') '+o,20,y);y+=7;});y+=4;});
+  pdf.save('ADAPTA-atividade-adaptada.pdf');
+}
+async function exportWord(){
+  const children=[new Paragraph({text:'ADAPTA+ | '+state.kind,heading:HeadingLevel.TITLE}),new Paragraph({children:[new TextRun({text:'Conteúdo: ',bold:true}),new TextRun(state.topic)]}),new Paragraph('Disciplina: '+state.subject),new Paragraph('Estudante: '+(state.student||'________________________')),new Paragraph('Turma: '+(state.grade||'________________'))];
+  state.questions.forEach(q=>{children.push(new Paragraph({text:q.number+'. '+q.text,heading:HeadingLevel.HEADING_2}));q.opts.forEach((o,i)=>children.push(new Paragraph(String.fromCharCode(65+i)+') '+o)));});
+  children.push(new Paragraph({children:[new TextRun({text:'Material demonstrativo: revise e ajuste conforme a avaliação pedagógica do estudante.',italics:true})]}));
+  const blob=await Packer.toBlob(new Document({sections:[{children}]}));const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ADAPTA-atividade-adaptada.docx';a.click();URL.revokeObjectURL(url);
+}
+function showHistory(){
+  state.screen='history';const h=JSON.parse(localStorage.getItem('adapta-plus-history')||'[]');
+  frame(`<div class="section-title">Histórico de atividades</div>${h.length?h.map((x,i)=>`<section class="panel"><b>${esc(x.topic)}</b><p class="muted">${esc(x.subject)} • ${esc(x.kind)} • ${x.questions.length} questões • ${esc(x.date)}</p><button class="secondary" data-open="${i}">Abrir</button></section>`).join(''):'<section class="panel muted">Nenhuma atividade salva neste dispositivo ainda.</section>'}`);
+  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const x=h[Number(b.dataset.open)];state.topic=x.topic;state.subject=x.subject;state.kind=x.kind;state.questions=x.questions;showResult();});
+}
+showHome();
