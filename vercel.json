@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/generate-image.js": {
-      "maxDuration": 120
+      "maxDuration": 60
     },
     "api/generate-activity.js": {
       "maxDuration": 60
